@@ -28,6 +28,23 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
+	r.Route("/api", func(r chi.Router) {
+		r.Route("/course", func(r chi.Router) {
+			r.Get("/", GetCourses)
+			r.Get("/{id}", GetCourse)
+			r.Put("/{id}", UpdateCourse)
+			r.Post("/", CreateCourse)
+			r.Delete("/{id}", DeleteCourse)
+		})
+		r.Route("/person", func(r chi.Router) {
+			r.Get("/", GetPeople)
+			r.Get("/{name}", GetPerson)
+			r.Put("/{name}", UpdatePerson)
+			r.Post("/", CreatePerson)
+			r.Delete("/{name}", DeletePerson)
+		})
+	})
+
 	serverAddress := fmt.Sprintf("%s:%s", serverHost, serverPort)
 
 	log.Printf("Starting server on %s...\n", serverAddress)
