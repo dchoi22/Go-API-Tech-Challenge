@@ -14,6 +14,6 @@ db_down:
 
 # ── API ─────────────────────────────────────────────────────────────────────────
 
-.PHONY: run_app:
+.PHONY: run_app
 run_app:
 	docker-compose up
