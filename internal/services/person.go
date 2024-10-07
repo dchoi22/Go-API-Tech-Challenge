@@ -1,1 +1,101 @@
 package services
+
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"strings"
+
+	"github.com/dchoi22/Go-API-Tech-Challenge/internal/models"
+)
+
+type PersonService struct {
+	database *sql.DB
+}
+
+func NewPersonService(db *sql.DB) *PersonService {
+	return &PersonService{
+		database: db,
+	}
+}
+
+func (p PersonService) GetPeople(ctx context.Context, firstName, lastName, age, personType string) ([]models.Person, error) {
+	query := `SELECT * FROM "person"`
+	var whereClauses []string
+	var args []interface{}
+
+	whereClauses = append(whereClauses, "type = $"+fmt.Sprint(len(args)+1))
+	args = append(args, personType)
+
+	if firstName != "" {
+		whereClauses = append(whereClauses, "first_name = $"+fmt.Sprint(len(args)+1))
+		args = append(args, firstName)
+	}
+	if lastName != "" {
+		whereClauses = append(whereClauses, "last_name = $"+fmt.Sprint(len(args)+1))
+		args = append(args, lastName)
+	}
+	if age != "" {
+		whereClauses = append(whereClauses, "age = $"+fmt.Sprint(len(args)+1))
+		args = append(args, age)
+	}
+
+	if len(whereClauses) > 0 {
+		query += " WHERE " + strings.Join(whereClauses, " AND ")
+	}
+
+	rows, err := p.database.QueryContext(ctx, query, args...)
+	if err != nil {
+		return []models.Person{}, fmt.Errorf("[in services.GetPeople] failed to get people: %w", err)
+	}
+	defer rows.Close()
+
+	var people []models.Person
+
+	for rows.Next() {
+		var p models.Person
+		// err = rows.Scan(&p.ID, &p.FirstName, &p.LastName, &p.Type, &p.Age, &p.Courses)
+		err = rows.Scan(&p.ID, &p.FirstName, &p.LastName, &p.Type, &p.Age)
+		if err != nil {
+			return []models.Person{}, fmt.Errorf("[in services.GetPeople] failed to scan people from row: %w", err)
+		}
+		people = append(people, p)
+	}
+	if err := rows.Err(); err != nil {
+		return []models.Person{}, fmt.Errorf("[in services.GetPeople] failed to scan people: %w", err)
+	}
+	return people, nil
+}
+
+func (p PersonService) GetPerson(ctx context.Context, firstName, personType string) (models.Person, error) {
+	row := p.database.QueryRowContext(ctx, `
+	SELECT * FROM 
+	"person" 
+	WHERE "first_name" = $1 
+	AND 
+	"type" = $2
+	`, firstName, personType)
+	person := models.Person{}
+	if err := row.Scan(&person.ID, &person.FirstName, &person.LastName, &person.Type, &person.Age); err != nil {
+		if err == sql.ErrNoRows {
+			return models.Person{}, fmt.Errorf("[in services.GetPerson] failed to get person: %w", err)
+		}
+		return models.Person{}, fmt.Errorf("[in services.GetCourse] failed to scan person: %w", err)
+	}
+	return person, nil
+}
+
+func (p PersonService) UpdatePerson(ctx context.Context, firstName, personType string, person models.Person) (models.Person, error) {
+	_, err := p.database.ExecContext(ctx, `UPDATE "person" 
+     SET "first_name" = $1, 
+         "last_name" = $2, 
+         "type" = $3, 
+         "age" = $4
+     WHERE "first_name" = $5
+	 `, person.FirstName, person.LastName, person.Type, person.Age, firstName)
+	if err != nil {
+		return models.Person{}, fmt.Errorf("[in services.UpdatePerson] failed to update person: %w", err)
+	}
+
+	return person, nil
+}
