@@ -115,3 +115,16 @@ func (p PersonService) CreatePerson(ctx context.Context, person models.Person) (
 	}
 	return person, nil
 }
+
+func (p PersonService) DeletePerson(ctx context.Context, firstName, personType string) error {
+	_, err := p.database.Exec(`
+	DELETE FROM
+	"person"
+	WHERE "first_name" = $1
+	AND "type" = $2
+	`, firstName, personType)
+	if err != nil {
+		return fmt.Errorf("[in services.DeletePerson] failed to delete person: %w", err)
+	}
+	return nil
+}

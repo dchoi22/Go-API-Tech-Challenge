@@ -92,7 +92,7 @@ func (c CourseService) DeleteCourse(ctx context.Context, id int) error {
 	WHERE "id" = $1
 	`, id)
 	if err != nil {
-		return fmt.Errorf("[in services.UpdateCourse] failed to update course: %w", err)
+		return fmt.Errorf("[in services.UpdateCourse] failed to delete course: %w", err)
 	}
 	return nil
 }

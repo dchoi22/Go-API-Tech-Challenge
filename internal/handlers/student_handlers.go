@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/dchoi22/Go-API-Tech-Challenge/internal/handlers/utils"
@@ -16,6 +17,7 @@ type studentGetter interface {
 	GetPerson(ctx context.Context, firstName, personType string) (models.Person, error)
 	UpdatePerson(ctx context.Context, firstName, personType string, person models.Person) (models.Person, error)
 	CreatePerson(ctx context.Context, person models.Person) (models.Person, error)
+	DeletePerson(ctx context.Context, firstName, personType string) error
 }
 
 func HandleGetStudents(logger *httplog.Logger, service studentGetter) http.HandlerFunc {
@@ -101,5 +103,23 @@ func HandleCreateStudent(logger *httplog.Logger, service studentGetter) http.Han
 			return
 		}
 		encodeResponse(w, logger, http.StatusOK, student.ID)
+	}
+}
+
+func HandleDeleteStudent(logger *httplog.Logger, service studentGetter) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		nameParam := chi.URLParam(r, "firstName")
+		if nameParam == "" {
+			logger.Error("invalid student name", "error", errors.New("first name is required"))
+			encodeResponse(w, logger, http.StatusBadRequest, responseErr{Error: "Invalid student name"})
+			return
+		}
+		if err := service.DeletePerson(ctx, nameParam, "student"); err != nil {
+			logger.Error("error deleting student", "error", err)
+			encodeResponse(w, logger, http.StatusInternalServerError, responseErr{Error: "Error deleting data"})
+			return
+		}
+		encodeResponse(w, logger, http.StatusOK, "Student has successfully been deleted")
 	}
 }

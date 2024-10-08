@@ -77,7 +77,7 @@ func run() error {
 			r.Get("/{firstName}", handlers.HandleGetStudent(logger, personSvs))
 			r.Put("/{firstName}", handlers.HandleUpdateStudent(logger, personSvs))
 			r.Post("/", handlers.HandleCreateStudent(logger, personSvs))
-			// r.Delete("/{name}", DeletePerson)
+			r.Delete("/{firstName}", handlers.HandleDeleteStudent(logger, personSvs))
 		})
 		r.Route("/professor", func(r chi.Router) {
 			// r.Get("/", handlers.Handle(logger, personSvs))
