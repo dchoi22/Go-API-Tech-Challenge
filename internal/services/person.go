@@ -117,14 +117,21 @@ func (p PersonService) CreatePerson(ctx context.Context, person models.Person) (
 }
 
 func (p PersonService) DeletePerson(ctx context.Context, firstName, personType string) error {
-	_, err := p.database.Exec(`
-	DELETE FROM
-	"person"
+	result, err := p.database.ExecContext(ctx, `
+	DELETE FROM "person"
 	WHERE "first_name" = $1
 	AND "type" = $2
 	`, firstName, personType)
 	if err != nil {
 		return fmt.Errorf("[in services.DeletePerson] failed to delete person: %w", err)
 	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("[in services.DeletePerson] failed to get affected rows: %w", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("person with first name %s and type %s does not exist", firstName, personType)
+	}
+
 	return nil
 }

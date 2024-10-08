@@ -80,11 +80,11 @@ func run() error {
 			r.Delete("/{firstName}", handlers.HandleDeleteStudent(logger, personSvs))
 		})
 		r.Route("/professor", func(r chi.Router) {
-			// r.Get("/", handlers.Handle(logger, personSvs))
-			// r.Get("/{name}", GetPerson)
-			// r.Put("/{name}", UpdatePerson)
-			// r.Post("/", CreatePerson)
-			// r.Delete("/{name}", DeletePerson)
+			r.Get("/", handlers.HandleGetProfessors(logger, personSvs))
+			r.Get("/{firstName}", handlers.HandleGetProfessor(logger, personSvs))
+			r.Put("/{firstName}", handlers.HandleUpdateProfessor(logger, personSvs))
+			r.Post("/", handlers.HandleCreateProfessor(logger, personSvs))
+			r.Delete("/{firstName}", handlers.HandleDeleteProfessor(logger, personSvs))
 		})
 	})
 
