@@ -65,7 +65,7 @@ func (c CourseService) CreateCourse(ctx context.Context, course models.Course) (
 	RETURNING "id"
 	`, course.Name).Scan(&course.ID)
 	if err != nil {
-		return models.Course{}, fmt.Errorf("[in services.CreateCourse] failed to insert course: %w", err)
+		return models.Course{}, fmt.Errorf("[in services.CreateCourse] failed to create course: %w", err)
 	}
 	return course, nil
 }

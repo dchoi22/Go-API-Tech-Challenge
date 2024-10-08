@@ -24,14 +24,12 @@ import (
 )
 
 func main() {
-	ctx := context.Background()
-
-	if err := run(ctx); err != nil {
+	if err := run(); err != nil {
 		log.Fatalf("Startup failed, err: %v", err)
 	}
 }
 
-func run(ctx context.Context) error {
+func run() error {
 
 	serverHost := os.Getenv("HTTP_DOMAIN")
 	serverPort := os.Getenv("HTTP_PORT")
@@ -78,7 +76,7 @@ func run(ctx context.Context) error {
 			r.Get("/", handlers.HandleGetStudents(logger, personSvs))
 			r.Get("/{firstName}", handlers.HandleGetStudent(logger, personSvs))
 			r.Put("/{firstName}", handlers.HandleUpdateStudent(logger, personSvs))
-			// r.Post("/", CreatePerson)
+			r.Post("/", handlers.HandleCreateStudent(logger, personSvs))
 			// r.Delete("/{name}", DeletePerson)
 		})
 		r.Route("/professor", func(r chi.Router) {
@@ -116,7 +114,7 @@ func run(ctx context.Context) error {
 		logger.Info("Shutdown signal received")
 
 		// Create a context with a timeout for graceful shutdown
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel() // Ensure that the context is canceled to release resources
 
 		if err := serverInstance.Shutdown(shutdownCtx); err != nil {

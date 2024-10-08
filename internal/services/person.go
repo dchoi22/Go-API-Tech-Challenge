@@ -92,10 +92,26 @@ func (p PersonService) UpdatePerson(ctx context.Context, firstName, personType s
          "type" = $3, 
          "age" = $4
      WHERE "first_name" = $5
-	 `, person.FirstName, person.LastName, person.Type, person.Age, firstName)
+	 AND "type" = $6
+	 `, person.FirstName, person.LastName, person.Type, person.Age, firstName, personType)
 	if err != nil {
 		return models.Person{}, fmt.Errorf("[in services.UpdatePerson] failed to update person: %w", err)
 	}
 
+	return person, nil
+}
+
+func (p PersonService) CreatePerson(ctx context.Context, person models.Person) (models.Person, error) {
+	err := p.database.QueryRowContext(ctx, `
+	INSERT INTO "person" 
+	(first_name, last_name, type, age)
+	VALUES 
+	($1, $2, $3, $4)
+	RETURNING id
+	`, person.FirstName, person.LastName, person.Type, person.Age).Scan(&person.ID)
+
+	if err != nil {
+		return models.Person{}, fmt.Errorf("[in services.CreatePerson] failed to create person: %w", err)
+	}
 	return person, nil
 }
