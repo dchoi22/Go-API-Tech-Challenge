@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/dchoi22/Go-API-Tech-Challenge/internal/models"
+	"github.com/lib/pq"
 )
 
 type PersonService struct {
@@ -20,7 +21,10 @@ func NewPersonService(db *sql.DB) *PersonService {
 }
 
 func (p PersonService) GetPeople(ctx context.Context, firstName, lastName, age, personType string) ([]models.Person, error) {
-	query := `SELECT * FROM "person"`
+	query := `SELECT p.id, p.first_name, p.last_name, p.type, p.age, ARRAY_AGG(pc.course_id) AS courses
+		FROM person p
+		LEFT JOIN person_course pc ON p.id = pc.person_id
+		`
 	var whereClauses []string
 	var args []interface{}
 
@@ -44,6 +48,10 @@ func (p PersonService) GetPeople(ctx context.Context, firstName, lastName, age, 
 		query += " WHERE " + strings.Join(whereClauses, " AND ")
 	}
 
+	query += `
+	GROUP BY id, first_name, last_name, type, age;
+	`
+
 	rows, err := p.database.QueryContext(ctx, query, args...)
 	if err != nil {
 		return []models.Person{}, fmt.Errorf("[in services.GetPeople] failed to get people: %w", err)
@@ -54,8 +62,7 @@ func (p PersonService) GetPeople(ctx context.Context, firstName, lastName, age, 
 
 	for rows.Next() {
 		var p models.Person
-		// err = rows.Scan(&p.ID, &p.FirstName, &p.LastName, &p.Type, &p.Age, &p.Courses)
-		err = rows.Scan(&p.ID, &p.FirstName, &p.LastName, &p.Type, &p.Age)
+		err = rows.Scan(&p.ID, &p.FirstName, &p.LastName, &p.Type, &p.Age, pq.Array(&p.Courses))
 		if err != nil {
 			return []models.Person{}, fmt.Errorf("[in services.GetPeople] failed to scan people from row: %w", err)
 		}
@@ -69,14 +76,16 @@ func (p PersonService) GetPeople(ctx context.Context, firstName, lastName, age, 
 
 func (p PersonService) GetPerson(ctx context.Context, firstName, personType string) (models.Person, error) {
 	row := p.database.QueryRowContext(ctx, `
-	SELECT * FROM 
-	"person" 
+	SELECT p.id, p.first_name, p.last_name, p.type, p.age, ARRAY_AGG(pc.course_id) AS courses
+		FROM person p
+		LEFT JOIN person_course pc ON p.id = pc.person_id
 	WHERE "first_name" = $1 
 	AND 
 	"type" = $2
+	GROUP BY id, first_name, last_name, type, age;
 	`, firstName, personType)
 	person := models.Person{}
-	if err := row.Scan(&person.ID, &person.FirstName, &person.LastName, &person.Type, &person.Age); err != nil {
+	if err := row.Scan(&person.ID, &person.FirstName, &person.LastName, &person.Type, &person.Age, pq.Array(&person.Courses)); err != nil {
 		if err == sql.ErrNoRows {
 			return models.Person{}, fmt.Errorf("[in services.GetPerson] failed to get person: %w", err)
 		}
@@ -90,10 +99,11 @@ func (p PersonService) UpdatePerson(ctx context.Context, firstName, personType s
      SET "first_name" = $1, 
          "last_name" = $2, 
          "type" = $3, 
-         "age" = $4
-     WHERE "first_name" = $5
-	 AND "type" = $6
-	 `, person.FirstName, person.LastName, person.Type, person.Age, firstName, personType)
+         "age" = $4,
+		 "courses_ids" = $5
+     WHERE "first_name" = $6
+	 AND "type" = $7
+	 `, person.FirstName, person.LastName, person.Type, person.Age, person.Courses, firstName, personType)
 	if err != nil {
 		return models.Person{}, fmt.Errorf("[in services.UpdatePerson] failed to update person: %w", err)
 	}
