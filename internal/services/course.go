@@ -71,22 +71,45 @@ func (c CourseService) CreateCourse(ctx context.Context, course models.Course) (
 }
 
 func (c CourseService) UpdateCourse(ctx context.Context, id int, course models.Course) (models.Course, error) {
+	// Check if the course exists
+	var exists bool
+	err := c.database.QueryRowContext(ctx, `
+        SELECT EXISTS(SELECT 1 FROM "course" WHERE "id" = $1)
+    `, id).Scan(&exists)
+	if err != nil {
+		return models.Course{}, fmt.Errorf("[in services.UpdateCourse] failed to check course existence: %w", err)
+	}
+	if !exists {
+		return models.Course{}, fmt.Errorf("[in services.UpdateCourse] course with ID %d does not exist", id)
+	}
 
-	_, err := c.database.ExecContext(ctx, `
-	UPDATE "course" 
-	SET "name" = $1 
-	WHERE "id" = $2
-	`, course.Name, id)
+	// Update the course if it exists
+	_, err = c.database.ExecContext(ctx, `
+        UPDATE "course" 
+        SET "name" = $1 
+        WHERE "id" = $2
+    `, course.Name, id)
 	if err != nil {
 		return models.Course{}, fmt.Errorf("[in services.UpdateCourse] failed to update course: %w", err)
 	}
 
-	course.ID = int(id)
+	course.ID = id
 	return course, nil
-
 }
+
 func (c CourseService) DeleteCourse(ctx context.Context, id int) error {
-	_, err := c.database.Exec(`
+	var exists bool
+	err := c.database.QueryRowContext(ctx, `
+        SELECT EXISTS(SELECT 1 FROM "course" WHERE "id" = $1)
+    `, id).Scan(&exists)
+	if err != nil {
+		return fmt.Errorf("[in services.DeleteCourse] failed to check course existence: %w", err)
+	}
+	if !exists {
+		return fmt.Errorf("[in services.DeleteCourses] course with ID %d does not exist", id)
+	}
+
+	_, err = c.database.Exec(`
 	DELETE FROM 
 	"course" 
 	WHERE "id" = $1

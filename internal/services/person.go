@@ -180,20 +180,58 @@ func (p PersonService) CreatePerson(ctx context.Context, person models.Person) (
 }
 
 func (p PersonService) DeletePerson(ctx context.Context, firstName, personType string) error {
-	result, err := p.database.ExecContext(ctx, `
-	DELETE FROM "person"
-	WHERE "first_name" = $1
-	AND "type" = $2
-	`, firstName, personType)
+	// Start a transaction
+	tx, err := p.database.BeginTx(ctx, nil)
 	if err != nil {
+		return fmt.Errorf("[in services.DeletePerson] failed to start transaction: %w", err)
+	}
+
+	// Find the person ID based on the first name and type
+	var personID int
+	err = tx.QueryRowContext(ctx, `
+        SELECT id FROM "person"
+        WHERE "first_name" = $1 AND "type" = $2
+    `, firstName, personType).Scan(&personID)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("[in services.DeletePerson] failed to find person: %w", err)
+	}
+
+	// Delete from person_course first to avoid foreign key constraint violation
+	_, err = tx.ExecContext(ctx, `
+        DELETE FROM "person_course"
+        WHERE "person_id" = $1
+    `, personID)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("[in services.DeletePerson] failed to delete from person_course: %w", err)
+	}
+
+	// Delete the person record
+	result, err := tx.ExecContext(ctx, `
+        DELETE FROM "person"
+        WHERE "id" = $1
+    `, personID)
+	if err != nil {
+		tx.Rollback()
 		return fmt.Errorf("[in services.DeletePerson] failed to delete person: %w", err)
 	}
+
+	// Check if any rows were affected
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
+		tx.Rollback()
 		return fmt.Errorf("[in services.DeletePerson] failed to get affected rows: %w", err)
 	}
 	if rowsAffected == 0 {
+		tx.Rollback()
 		return fmt.Errorf("person with first name %s and type %s does not exist", firstName, personType)
+	}
+
+	// Commit the transaction
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("[in services.DeletePerson] failed to commit transaction: %w", err)
 	}
 
 	return nil

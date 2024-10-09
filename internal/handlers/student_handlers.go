@@ -75,6 +75,11 @@ func HandleUpdateStudent(logger *httplog.Logger, service studentGetter) http.Han
 			return
 		}
 
+		if student.Type != "student" {
+			encodeResponse(w, logger, http.StatusBadRequest, responseErr{Error: "Person is not of type student"})
+			return
+		}
+
 		// Get the existing student to retrieve the ID
 		existingStudent, err := service.GetPerson(ctx, nameParam, "student")
 		if err != nil {
@@ -118,6 +123,11 @@ func HandleCreateStudent(logger *httplog.Logger, service studentGetter) http.Han
 		if err := utils.ValidatePerson(student); err != nil {
 			logger.Error("invalid student data", "error", err)
 			encodeResponse(w, logger, http.StatusBadRequest, responseErr{Error: err.Error()})
+			return
+		}
+
+		if student.Type != "student" {
+			encodeResponse(w, logger, http.StatusBadRequest, responseErr{Error: "Person is not of type student"})
 			return
 		}
 		student, err := service.CreatePerson(ctx, student)
