@@ -10,7 +10,7 @@ GET    http://localhost:8000/api/course/1
 
 ###
 
-PUT    http://localhost:8000/api/course/4
+PUT    http://localhost:8000/api/course/3
 content-type: application/json
 
 {
@@ -34,7 +34,7 @@ DELETE http://localhost:8000/api/course/4
 # api/person
 ###
 
-GET    http://localhost:8000/api/person
+GET    http://localhost:8000/api/student
 
 ###
 
@@ -42,30 +42,31 @@ GET    http://localhost:8000/api/person/{name}
 
 ###
 
-PUT    http://localhost:8000/api/person/{name}
+PUT    http://localhost:8000/api/student/first_name
 content-type: application/json
 
 {
-  "first_name": "first_name",
-  "last_name": "last_name",
+  "first_name": "David",
+  "last_name": "Choi",
   "type": "student",
-  "age": 0,
+  "age": 22,
   "courses": [
-    1,
-    2
+    1, 
+    2, 
+    3
   ]
 }
 
 ###
 
-POST http://localhost:8000/api/person
+POST http://localhost:8000/api/student
 content-type: application/json
 
 {
   "first_name": "first_name",
   "last_name": "last_name",
   "type": "student",
-  "age": 0,
+  "age": 10,
   "courses": [
     1,
     2

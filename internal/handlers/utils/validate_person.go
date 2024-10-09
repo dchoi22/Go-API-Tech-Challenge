@@ -28,7 +28,5 @@ func ValidatePerson(person models.Person) error {
 		return errors.New("age must be a positive number")
 	}
 
-	// Add other field validations as necessary
-
 	return nil
 }

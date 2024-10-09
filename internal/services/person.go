@@ -95,20 +95,73 @@ func (p PersonService) GetPerson(ctx context.Context, firstName, personType stri
 }
 
 func (p PersonService) UpdatePerson(ctx context.Context, firstName, personType string, person models.Person) (models.Person, error) {
-	_, err := p.database.ExecContext(ctx, `UPDATE "person" 
+	_, err := p.database.ExecContext(ctx, `
+	UPDATE "person" 
      SET "first_name" = $1, 
          "last_name" = $2, 
          "type" = $3, 
-         "age" = $4,
-		 "courses_ids" = $5
-     WHERE "first_name" = $6
-	 AND "type" = $7
-	 `, person.FirstName, person.LastName, person.Type, person.Age, person.Courses, firstName, personType)
+         "age" = $4
+     WHERE "first_name" = $5
+	 AND "type" = $6;
+	 `, person.FirstName, person.LastName, person.Type, person.Age, firstName, personType)
 	if err != nil {
 		return models.Person{}, fmt.Errorf("[in services.UpdatePerson] failed to update person: %w", err)
 	}
 
+	err = p.database.QueryRowContext(ctx, `
+        SELECT id, first_name, last_name, type, age FROM "person" 
+        WHERE "first_name" = $1 AND "type" = $2;
+    `, person.FirstName, person.Type).Scan(
+		&person.ID,
+		&person.FirstName,
+		&person.LastName,
+		&person.Type,
+		&person.Age,
+	)
+	if err != nil {
+		return models.Person{}, fmt.Errorf("[in services.UpdatePerson] failed to retrieve updated person: %w", err)
+	}
+
 	return person, nil
+}
+
+func (p PersonService) UpdatePersonCourses(ctx context.Context, studentID int, newCourses []int64) error {
+
+	tx, err := p.database.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("[in services.UpdatePersonCourses] failed to start transaction: %v", err)
+	}
+
+	_, err = tx.ExecContext(ctx, `
+        DELETE FROM person_course
+        WHERE person_id = $1
+        AND course_id != ALL($2)
+    `, studentID, pq.Array(newCourses))
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("[in services.UpdatePersonCourses] failed to remove old courses: %v", err)
+	}
+
+	// Insert the new courses if not already associated with the student
+	for _, courseID := range newCourses {
+		_, err = tx.ExecContext(ctx, `
+            INSERT INTO person_course (person_id, course_id)
+            VALUES ($1, $2)
+            ON CONFLICT DO NOTHING
+        `, studentID, courseID)
+		if err != nil {
+			tx.Rollback()
+			return fmt.Errorf("[in services.UpdatePersonCourses] failed to add new courses: %v", err)
+		}
+	}
+
+	// Commit the transaction
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("[in services.UpdatePersonCourses] failed to commit transaction: %v", err)
+	}
+
+	return nil
 }
 
 func (p PersonService) CreatePerson(ctx context.Context, person models.Person) (models.Person, error) {
