@@ -11,12 +11,12 @@ import (
 )
 
 type PersonService struct {
-	database *sql.DB
+	Database *sql.DB
 }
 
 func NewPersonService(db *sql.DB) *PersonService {
 	return &PersonService{
-		database: db,
+		Database: db,
 	}
 }
 
@@ -52,7 +52,7 @@ func (p PersonService) GetPeople(ctx context.Context, firstName, lastName, age, 
 	GROUP BY id, first_name, last_name, type, age;
 	`
 
-	rows, err := p.database.QueryContext(ctx, query, args...)
+	rows, err := p.Database.QueryContext(ctx, query, args...)
 	if err != nil {
 		return []models.Person{}, fmt.Errorf("[in services.GetPeople] failed to get people: %w", err)
 	}
@@ -75,7 +75,7 @@ func (p PersonService) GetPeople(ctx context.Context, firstName, lastName, age, 
 }
 
 func (p PersonService) GetPerson(ctx context.Context, firstName, personType string) (models.Person, error) {
-	row := p.database.QueryRowContext(ctx, `
+	row := p.Database.QueryRowContext(ctx, `
 	SELECT p.id, p.first_name, p.last_name, p.type, p.age, ARRAY_AGG(pc.course_id) AS courses
 		FROM person p
 		LEFT JOIN person_course pc ON p.id = pc.person_id
@@ -95,7 +95,7 @@ func (p PersonService) GetPerson(ctx context.Context, firstName, personType stri
 }
 
 func (p PersonService) UpdatePerson(ctx context.Context, firstName, personType string, person models.Person) (models.Person, error) {
-	_, err := p.database.ExecContext(ctx, `
+	_, err := p.Database.ExecContext(ctx, `
 	UPDATE "person" 
      SET "first_name" = $1, 
          "last_name" = $2, 
@@ -108,7 +108,7 @@ func (p PersonService) UpdatePerson(ctx context.Context, firstName, personType s
 		return models.Person{}, fmt.Errorf("[in services.UpdatePerson] failed to update person: %w", err)
 	}
 
-	err = p.database.QueryRowContext(ctx, `
+	err = p.Database.QueryRowContext(ctx, `
         SELECT id, first_name, last_name, type, age FROM "person" 
         WHERE "first_name" = $1 AND "type" = $2;
     `, person.FirstName, person.Type).Scan(
@@ -127,7 +127,7 @@ func (p PersonService) UpdatePerson(ctx context.Context, firstName, personType s
 
 func (p PersonService) UpdatePersonCourses(ctx context.Context, studentID int, newCourses []int64) error {
 
-	tx, err := p.database.BeginTx(ctx, nil)
+	tx, err := p.Database.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("[in services.UpdatePersonCourses] failed to start transaction: %v", err)
 	}
@@ -165,7 +165,7 @@ func (p PersonService) UpdatePersonCourses(ctx context.Context, studentID int, n
 }
 
 func (p PersonService) CreatePerson(ctx context.Context, person models.Person) (models.Person, error) {
-	err := p.database.QueryRowContext(ctx, `
+	err := p.Database.QueryRowContext(ctx, `
 	INSERT INTO "person" 
 	(first_name, last_name, type, age)
 	VALUES 
@@ -181,7 +181,7 @@ func (p PersonService) CreatePerson(ctx context.Context, person models.Person) (
 
 func (p PersonService) DeletePerson(ctx context.Context, firstName, personType string) error {
 	// Start a transaction
-	tx, err := p.database.BeginTx(ctx, nil)
+	tx, err := p.Database.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("[in services.DeletePerson] failed to start transaction: %w", err)
 	}
@@ -199,8 +199,8 @@ func (p PersonService) DeletePerson(ctx context.Context, firstName, personType s
 
 	// Delete from person_course first to avoid foreign key constraint violation
 	_, err = tx.ExecContext(ctx, `
-        DELETE FROM "person_course"
-        WHERE "person_id" = $1
+			DELETE FROM "person_course"
+			WHERE "person_id" = $1
     `, personID)
 	if err != nil {
 		tx.Rollback()

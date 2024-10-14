@@ -9,17 +9,17 @@ import (
 )
 
 type CourseService struct {
-	database *sql.DB
+	Database *sql.DB
 }
 
 func NewCourseService(db *sql.DB) *CourseService {
 	return &CourseService{
-		database: db,
+		Database: db,
 	}
 }
 
 func (c CourseService) GetCourses(ctx context.Context) ([]models.Course, error) {
-	rows, err := c.database.QueryContext(ctx, `SELECT * FROM "course"`)
+	rows, err := c.Database.QueryContext(ctx, `SELECT * FROM "course"`)
 	if err != nil {
 		return []models.Course{}, fmt.Errorf("[in services.GetCourses] failed to get courses: %w", err)
 	}
@@ -42,7 +42,7 @@ func (c CourseService) GetCourses(ctx context.Context) ([]models.Course, error) 
 }
 
 func (c CourseService) GetCourse(ctx context.Context, id int) (models.Course, error) {
-	row := c.database.QueryRowContext(ctx, `
+	row := c.Database.QueryRowContext(ctx, `
 	SELECT * FROM 
 	"course" 
 	WHERE "id" = $1
@@ -58,7 +58,7 @@ func (c CourseService) GetCourse(ctx context.Context, id int) (models.Course, er
 }
 
 func (c CourseService) CreateCourse(ctx context.Context, course models.Course) (models.Course, error) {
-	err := c.database.QueryRowContext(ctx, `
+	err := c.Database.QueryRowContext(ctx, `
 	INSERT INTO "course" 
 	(name) 
 	VALUES ($1) 
@@ -73,7 +73,7 @@ func (c CourseService) CreateCourse(ctx context.Context, course models.Course) (
 func (c CourseService) UpdateCourse(ctx context.Context, id int, course models.Course) (models.Course, error) {
 	// Check if the course exists
 	var exists bool
-	err := c.database.QueryRowContext(ctx, `
+	err := c.Database.QueryRowContext(ctx, `
         SELECT EXISTS(SELECT 1 FROM "course" WHERE "id" = $1)
     `, id).Scan(&exists)
 	if err != nil {
@@ -84,7 +84,7 @@ func (c CourseService) UpdateCourse(ctx context.Context, id int, course models.C
 	}
 
 	// Update the course if it exists
-	_, err = c.database.ExecContext(ctx, `
+	_, err = c.Database.ExecContext(ctx, `
         UPDATE "course" 
         SET "name" = $1 
         WHERE "id" = $2
@@ -99,7 +99,7 @@ func (c CourseService) UpdateCourse(ctx context.Context, id int, course models.C
 
 func (c CourseService) DeleteCourse(ctx context.Context, id int) error {
 	var exists bool
-	err := c.database.QueryRowContext(ctx, `
+	err := c.Database.QueryRowContext(ctx, `
         SELECT EXISTS(SELECT 1 FROM "course" WHERE "id" = $1)
     `, id).Scan(&exists)
 	if err != nil {
@@ -109,7 +109,7 @@ func (c CourseService) DeleteCourse(ctx context.Context, id int) error {
 		return fmt.Errorf("[in services.DeleteCourses] course with ID %d does not exist", id)
 	}
 
-	_, err = c.database.Exec(`
+	_, err = c.Database.Exec(`
 	DELETE FROM 
 	"course" 
 	WHERE "id" = $1

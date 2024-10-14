@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -26,10 +27,10 @@ func HandleGetCourses(logger *httplog.Logger, service courseGetter) http.Handler
 		courses, err := service.GetCourses(ctx)
 		if err != nil {
 			logger.Error("error getting all courses", "error", err)
-			encodeResponse(w, logger, http.StatusInternalServerError, responseErr{Error: "Error retrieving data"})
+			EncodeResponse(w, logger, http.StatusInternalServerError, ResponseErr{Error: "Error retrieving data"})
 			return
 		}
-		encodeResponse(w, logger, http.StatusOK, courses)
+		EncodeResponse(w, logger, http.StatusOK, courses)
 	}
 }
 
@@ -41,17 +42,17 @@ func HandleGetCourse(logger *httplog.Logger, service courseGetter) http.HandlerF
 		id, err := strconv.Atoi(idParam)
 		if err != nil {
 			logger.Error("invalid course ID", "error", err)
-			encodeResponse(w, logger, http.StatusBadRequest, responseErr{Error: "Invalid course ID"})
+			EncodeResponse(w, logger, http.StatusBadRequest, ResponseErr{Error: "Invalid course ID"})
 			return
 		}
 
 		course, err := service.GetCourse(ctx, id)
 		if err != nil {
 			logger.Error("error getting course", "error", err)
-			encodeResponse(w, logger, http.StatusInternalServerError, responseErr{Error: "Error retrieving data"})
+			EncodeResponse(w, logger, http.StatusInternalServerError, ResponseErr{Error: "Error retrieving data"})
 			return
 		}
-		encodeResponse(w, logger, http.StatusOK, course)
+		EncodeResponse(w, logger, http.StatusOK, course)
 	}
 }
 
@@ -61,16 +62,21 @@ func HandleCreateCourse(logger *httplog.Logger, service courseGetter) http.Handl
 		var course models.Course
 		if err := json.NewDecoder(r.Body).Decode(&course); err != nil {
 			logger.Error("failed to decode request body", "error", err)
-			encodeResponse(w, logger, http.StatusBadRequest, responseErr{Error: "Invalid request payload"})
+			EncodeResponse(w, logger, http.StatusBadRequest, ResponseErr{Error: "Invalid request payload"})
+			return
+		}
+		if course.Name == "" {
+			logger.Error("course name is missing", "error", fmt.Errorf("missing course name"))
+			EncodeResponse(w, logger, http.StatusBadRequest, ResponseErr{Error: "Course name is required"})
 			return
 		}
 		course, err := service.CreateCourse(ctx, course)
 		if err != nil {
 			logger.Error("error creating course", "error", err)
-			encodeResponse(w, logger, http.StatusInternalServerError, responseErr{Error: "Error creating data"})
+			EncodeResponse(w, logger, http.StatusInternalServerError, ResponseErr{Error: "Error creating data"})
 			return
 		}
-		encodeResponse(w, logger, http.StatusOK, course.ID)
+		EncodeResponse(w, logger, http.StatusOK, course.ID)
 	}
 }
 
@@ -83,23 +89,23 @@ func HandleUpdateCourse(logger *httplog.Logger, service courseGetter) http.Handl
 		id, err := strconv.Atoi(idParam)
 		if err != nil {
 			logger.Error("invalid course ID", "error", err)
-			encodeResponse(w, logger, http.StatusBadRequest, responseErr{Error: "Invalid course ID"})
+			EncodeResponse(w, logger, http.StatusBadRequest, ResponseErr{Error: "Invalid course ID"})
 			return
 		}
 
 		err = json.NewDecoder(r.Body).Decode(&course)
 		if err != nil {
 			logger.Error("failed to decode request body", "error", err)
-			encodeResponse(w, logger, http.StatusBadRequest, responseErr{Error: "Invalid request payload"})
+			EncodeResponse(w, logger, http.StatusBadRequest, ResponseErr{Error: "Invalid request payload"})
 			return
 		}
 		course, err = service.UpdateCourse(ctx, id, course)
 		if err != nil {
 			logger.Error("error updating course", "error", err)
-			encodeResponse(w, logger, http.StatusInternalServerError, responseErr{Error: "Error updating data"})
+			EncodeResponse(w, logger, http.StatusInternalServerError, ResponseErr{Error: "Error updating data"})
 			return
 		}
-		encodeResponse(w, logger, http.StatusOK, course)
+		EncodeResponse(w, logger, http.StatusOK, course)
 	}
 }
 
@@ -112,15 +118,15 @@ func HandleDeleteCourse(logger *httplog.Logger, service courseGetter) http.Handl
 		id, err := strconv.Atoi(idParam)
 		if err != nil {
 			logger.Error("invalid course ID", "error", err)
-			encodeResponse(w, logger, http.StatusBadRequest, responseErr{Error: "Invalid course ID"})
+			EncodeResponse(w, logger, http.StatusBadRequest, ResponseErr{Error: "Invalid course ID"})
 			return
 		}
 
 		if err := service.DeleteCourse(ctx, id); err != nil {
 			logger.Error("error deleting course", "error", err)
-			encodeResponse(w, logger, http.StatusInternalServerError, responseErr{Error: "Error deleting data"})
+			EncodeResponse(w, logger, http.StatusInternalServerError, ResponseErr{Error: "Error deleting data"})
 			return
 		}
-		encodeResponse(w, logger, http.StatusOK, "Course has successfully been deleted")
+		EncodeResponse(w, logger, http.StatusOK, "Course has successfully been deleted")
 	}
 }

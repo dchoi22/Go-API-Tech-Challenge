@@ -7,12 +7,12 @@ import (
 	"github.com/go-chi/httplog/v2"
 )
 
-type responseErr struct {
+type ResponseErr struct {
 	Error            string    `json:"error,omitempty"`
 	ValidationErrors []problem `json:"validation_errors,omitempty"`
 }
 
-func encodeResponse(w http.ResponseWriter, logger *httplog.Logger, status int, data any) {
+func EncodeResponse(w http.ResponseWriter, logger *httplog.Logger, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(data); err != nil {

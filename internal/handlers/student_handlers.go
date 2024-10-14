@@ -32,10 +32,10 @@ func HandleGetStudents(logger *httplog.Logger, service studentGetter) http.Handl
 		students, err := service.GetPeople(ctx, firstName, lastName, age, "student")
 		if err != nil {
 			logger.Error("error getting all students", "error", err)
-			encodeResponse(w, logger, http.StatusInternalServerError, responseErr{Error: "Error retrieving data"})
+			EncodeResponse(w, logger, http.StatusInternalServerError, ResponseErr{Error: "Error retrieving data"})
 			return
 		}
-		encodeResponse(w, logger, http.StatusOK, students)
+		EncodeResponse(w, logger, http.StatusOK, students)
 	}
 }
 
@@ -47,10 +47,10 @@ func HandleGetStudent(logger *httplog.Logger, service studentGetter) http.Handle
 		student, err := service.GetPerson(ctx, nameParam, "student")
 		if err != nil {
 			logger.Error("error getting student", "error", err)
-			encodeResponse(w, logger, http.StatusInternalServerError, responseErr{Error: "Error retrieving data"})
+			EncodeResponse(w, logger, http.StatusInternalServerError, ResponseErr{Error: "Error retrieving data"})
 			return
 		}
-		encodeResponse(w, logger, http.StatusOK, student)
+		EncodeResponse(w, logger, http.StatusOK, student)
 	}
 }
 
@@ -64,19 +64,19 @@ func HandleUpdateStudent(logger *httplog.Logger, service studentGetter) http.Han
 		err := json.NewDecoder(r.Body).Decode(&student)
 		if err != nil {
 			logger.Error("failed to decode request body", "error", err)
-			encodeResponse(w, logger, http.StatusBadRequest, responseErr{Error: "Invalid request payload"})
+			EncodeResponse(w, logger, http.StatusBadRequest, ResponseErr{Error: "Invalid request payload"})
 			return
 		}
 
 		// Validate the student data
 		if err := utils.ValidatePerson(student); err != nil {
 			logger.Error("invalid student data", "error", err)
-			encodeResponse(w, logger, http.StatusBadRequest, responseErr{Error: err.Error()})
+			EncodeResponse(w, logger, http.StatusBadRequest, ResponseErr{Error: err.Error()})
 			return
 		}
 
 		if student.Type != "student" {
-			encodeResponse(w, logger, http.StatusBadRequest, responseErr{Error: "Person is not of type student"})
+			EncodeResponse(w, logger, http.StatusBadRequest, ResponseErr{Error: "Person is not of type student"})
 			return
 		}
 
@@ -84,7 +84,7 @@ func HandleUpdateStudent(logger *httplog.Logger, service studentGetter) http.Han
 		existingStudent, err := service.GetPerson(ctx, nameParam, "student")
 		if err != nil {
 			logger.Error("error fetching existing student", "error", err)
-			encodeResponse(w, logger, http.StatusInternalServerError, responseErr{Error: "Error updating data"})
+			EncodeResponse(w, logger, http.StatusInternalServerError, ResponseErr{Error: "Error updating data"})
 			return
 		}
 
@@ -95,19 +95,19 @@ func HandleUpdateStudent(logger *httplog.Logger, service studentGetter) http.Han
 		updatedStudent, err := service.UpdatePerson(ctx, nameParam, "student", student)
 		if err != nil {
 			logger.Error("error updating student", "error", err)
-			encodeResponse(w, logger, http.StatusInternalServerError, responseErr{Error: "Error updating data"})
+			EncodeResponse(w, logger, http.StatusInternalServerError, ResponseErr{Error: "Error updating data"})
 			return
 		}
 
 		err = service.UpdatePersonCourses(ctx, student.ID, updatedStudent.Courses)
 		if err != nil {
 			logger.Error("error updating student's courses", "error", err)
-			encodeResponse(w, logger, http.StatusInternalServerError, responseErr{Error: "Error updating courses"})
+			EncodeResponse(w, logger, http.StatusInternalServerError, ResponseErr{Error: "Error updating courses"})
 			return
 		}
 
 		// Respond with the updated student object
-		encodeResponse(w, logger, http.StatusOK, updatedStudent)
+		EncodeResponse(w, logger, http.StatusOK, updatedStudent)
 	}
 }
 
@@ -117,23 +117,23 @@ func HandleCreateStudent(logger *httplog.Logger, service studentGetter) http.Han
 		var student models.Person
 		if err := json.NewDecoder(r.Body).Decode(&student); err != nil {
 			logger.Error("failed to decode request body", "error", err)
-			encodeResponse(w, logger, http.StatusBadRequest, responseErr{Error: "Invalid request payload"})
+			EncodeResponse(w, logger, http.StatusBadRequest, ResponseErr{Error: "Invalid request payload"})
 			return
 		}
 		if err := utils.ValidatePerson(student); err != nil {
 			logger.Error("invalid student data", "error", err)
-			encodeResponse(w, logger, http.StatusBadRequest, responseErr{Error: err.Error()})
+			EncodeResponse(w, logger, http.StatusBadRequest, ResponseErr{Error: err.Error()})
 			return
 		}
 
 		if student.Type != "student" {
-			encodeResponse(w, logger, http.StatusBadRequest, responseErr{Error: "Person is not of type student"})
+			EncodeResponse(w, logger, http.StatusBadRequest, ResponseErr{Error: "Person is not of type student"})
 			return
 		}
 		student, err := service.CreatePerson(ctx, student)
 		if err != nil {
 			logger.Error("error creating student", "error", err)
-			encodeResponse(w, logger, http.StatusInternalServerError, responseErr{Error: "Error creating data"})
+			EncodeResponse(w, logger, http.StatusInternalServerError, ResponseErr{Error: "Error creating data"})
 			return
 		}
 
@@ -141,11 +141,11 @@ func HandleCreateStudent(logger *httplog.Logger, service studentGetter) http.Han
 			err = service.UpdatePersonCourses(ctx, student.ID, student.Courses)
 			if err != nil {
 				logger.Error("error associating courses with student", "error", err)
-				encodeResponse(w, logger, http.StatusInternalServerError, responseErr{Error: "Error associating courses"})
+				EncodeResponse(w, logger, http.StatusInternalServerError, ResponseErr{Error: "Error associating courses"})
 				return
 			}
 		}
-		encodeResponse(w, logger, http.StatusOK, student.ID)
+		EncodeResponse(w, logger, http.StatusOK, student.ID)
 	}
 }
 
@@ -155,14 +155,14 @@ func HandleDeleteStudent(logger *httplog.Logger, service studentGetter) http.Han
 		nameParam := chi.URLParam(r, "firstName")
 		if nameParam == "" {
 			logger.Error("invalid student name", "error", errors.New("first name is required"))
-			encodeResponse(w, logger, http.StatusBadRequest, responseErr{Error: "Invalid student name"})
+			EncodeResponse(w, logger, http.StatusBadRequest, ResponseErr{Error: "Invalid student name"})
 			return
 		}
 		if err := service.DeletePerson(ctx, nameParam, "student"); err != nil {
 			logger.Error("error deleting student", "error", err)
-			encodeResponse(w, logger, http.StatusInternalServerError, responseErr{Error: "Error deleting data"})
+			EncodeResponse(w, logger, http.StatusInternalServerError, ResponseErr{Error: "Error deleting data"})
 			return
 		}
-		encodeResponse(w, logger, http.StatusOK, "Student has successfully been deleted")
+		EncodeResponse(w, logger, http.StatusOK, "Student has successfully been deleted")
 	}
 }
